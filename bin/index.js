@@ -21,30 +21,30 @@ var cli = meow({
   ].join('\n'),
 });
 
-io.on('connection', function(socket){
-    socket.on('join', function(room) {
-      // Get the list of peers in the room
-      var peers = io.nsps['/'].adapter.rooms[room] ?
-                Object.keys(io.nsps['/'].adapter.rooms[room].sockets) : []
-      
-      // Send them to the client
-      socket.emit('peers', peers);
-      // And then add the client to the room
-      socket.join(room);
-    });
+io.on('connection', function(socket) {
+  socket.on('join', function(room) {
+    // Get the list of peers in the room
+    var activeroom = io.nsps['/'].adapter.rooms[room] || {};
+    var peers = Object.keys(activeroom.sockets || {});
+    // Send them to the client
+    socket.emit('peers', peers);
+    // And then add the client to the room
+    socket.join(room);
+  });
 
-    socket.on('signal', function(data) {
-      var client = io.sockets.connected[data.id];
-      client && client.emit('signal', {
+  socket.on('signal', function(data) {
+    var client = io.sockets.connected[data.id];
+    client &&
+      client.emit('signal', {
         id: socket.id,
         signal: data.signal,
       });
-    });
+  });
 });
 
 if (!(cli.flags.h || cli.flags.help || cli.flags.version)) {
   var port = cli.flags.p || cli.flags.port || 3000;
-  http.listen(port, function(){
+  http.listen(port, function() {
     console.log('listening on *:' + port);
   });
 } else if (cli.flags.h || cli.flags.help) {
